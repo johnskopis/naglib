@@ -1,0 +1,23 @@
+#output: build.%(timestamp)s
+output: build
+prefix: fixtures
+engine: naglib.engine.ReClassifer
+
+ReClassifer:
+  csv: fixtures/hosts.csv
+  host_mappings:
+    alias: 0
+    host_name: 1
+    address: 2
+    network_site: 3
+    use: 3
+
+  rules:
+    - re: role\[test-service\]
+      field: -1
+      checks:
+        - test-service
+    - re: role\[test-service-test\]
+      field: -1
+      checks:
+        - test-service-test

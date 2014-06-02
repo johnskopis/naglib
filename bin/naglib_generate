@@ -1,0 +1,71 @@
+#!/usr/bin/env python
+
+import argparse
+import sys
+import yaml
+import datetime
+
+from naglib.config import *
+from naglib.config.registry import Registry
+import naglib.engine
+
+
+class Program(object):
+    def __init__(self, config, **kwargs):
+        self.config = dict()
+        self.load_config(config)
+        self.config.update((k, v) for k, v in kwargs.iteritems() if v is not None)
+
+        format_dict=dict(timestamp=datetime.datetime.now().strftime("%s"))
+
+        if self.config['output']:
+            self.config['output'] = self.config['output'] % format_dict
+
+        r = Registry(config=self.config['prefix'],
+                     output=self.config['output'])
+
+        parts = self.config['engine'].split('.')
+        module_name = '.'.join(parts[:-1])
+        class_name = parts[-1:][0]
+
+        r.resolve_all()
+
+        # TODO(JS): maybe we need to call more than one configuration engine here?
+        cls = getattr(sys.modules[module_name], class_name)
+        cls(registry=r, config=self.config, **kwargs)
+
+        r.validate_all()
+        r.generate_servicegroups()
+        r.generate_clusters()
+        r.write_all()
+
+    def load_config(self, cfg_file):
+        try:
+            with open(cfg_file, 'r') as fd:
+                self.config.update(yaml.load(fd.read()))
+        except IOError:
+            pass
+        except:
+            print "Unable to parse config file, error follows"
+            raise
+
+def main():
+    parser = argparse.ArgumentParser(description='Generate nagios configuration')
+    parser.add_argument('-c', '--config', action='store', default='/etc/naglib.yml',
+                        help='Configuration file to read; override config file by passing args')
+
+    parser.add_argument('-o', '--output', action='store',
+                        help='Where to write generated configs')
+
+    parser.add_argument('-p', '--prefix', action='store',
+                        help='Where to read static content, e.g. templates')
+
+    parser.add_argument('-e', '--engine', action='store',
+                        help='Configuration engine to use')
+
+    args = parser.parse_args()
+    Program(**vars(args))
+
+if __name__ == '__main__':
+    main()
+

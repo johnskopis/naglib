@@ -40,10 +40,16 @@ class Registry(object):
     PREFIX = 'fixtures'
     OUTPUT_DIR = 'build'
 
-    def __new__(cls):
-        return object.__new__(cls)
+    def __new__(cls, *args, **kwargs):
+        return object.__new__(cls, *args, **kwargs)
 
-    def __init__(self):
+    def __init__(self, prefix = None, output = None, **kwargs):
+        if prefix:
+            self.__class__.PREFIX = prefix
+
+        if output:
+            self.__class__.OUTPUT_DIR = output
+
         self.hosts = dict()
         self.host_templates = dict()
         self.services = dict()
@@ -58,7 +64,7 @@ class Registry(object):
     def register(self, obj, warn=True):
         registry = getattr(self, self.class2attr(obj.__class__))
         if registry.get(obj.identity, None):
-            if warn:
+            if warn and not obj.__class__.__name__.endswith('Template'):
                 print "WARN: attempting to register %s(%s) again" % (obj.__class__.__name__,
                                                                     obj.identity)
             return
@@ -114,7 +120,7 @@ class Registry(object):
         if os.path.isdir(self.OUTPUT_DIR):
             shutil.rmtree(self.OUTPUT_DIR)
 
-        os.mkdir(self.OUTPUT_DIR)
+        os.makedirs(self.OUTPUT_DIR)
 
         self._write('host_templates', self.host_templates)
         self._write('service_templates', self.service_templates)

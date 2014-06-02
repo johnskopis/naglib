@@ -18,7 +18,9 @@ if sys.argv[-1] == 'publish':
 
 packages = ('naglib', 'naglib.config',)
 
-requires = []
+requires = ['pyyaml>=0.0.0']
+
+scripts = [os.path.join('bin', 'naglib_generate'),]
 
 with open('README.md') as f:
     readme = f.read()
@@ -36,6 +38,7 @@ setup(
     author_email='jspam@skopis.com',
     url='https://github.com/johnskopis/naglib',
     packages=packages,
+    scripts=scripts,
     package_dir={'naglib': 'naglib'},
     include_package_data=True,
     install_requires=requires,
