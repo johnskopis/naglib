@@ -1,6 +1,11 @@
 import os
-import utils
-import host, servicegroup, command, servicedependency, serviceescalation, servicecluster, service
+#import host, servicegroup, command, servicedependency, serviceescalation, servicecluster, service
+from naglib.config.host import Host, HostTemplate
+from naglib.config.service import *
+from naglib.config.servicegroup import *
+from naglib.config.serviceescalation import *
+from naglib.config.command import *
+import naglib.utils as utils
 import shutil
 
 from sets import Set
@@ -21,15 +26,15 @@ class Registry(object):
                  )
 
     TYPES = (
-        ('host_templates', host.HostTemplate),
-        ('service_templates', service.ServiceTemplate),
-        ('hosts', host.Host),
-        ('services', service.Service),
-        ('service_clusters', servicecluster.ServiceCluster),
-        ('service_groups', servicegroup.ServiceGroup),
-        ('service_dependencies', servicedependency.ServiceDependency),
-        ('service_escalations', serviceescalation.ServiceEscalation),
-        ('commands', command.Command),
+        ('host_templates', HostTemplate),
+        ('service_templates', ServiceTemplate),
+        ('hosts', Host),
+        ('services', Service),
+        ('service_clusters', ServiceCluster),
+        ('service_groups', ServiceGroup),
+        ('service_dependencies', ServiceDependency),
+        ('service_escalations', ServiceEscalation),
+        ('commands', Command),
     )
 
     PREFIX = 'fixtures'
@@ -70,7 +75,7 @@ class Registry(object):
         if registry.get(name, None):
             return registry.get(name, None)
         else:
-            tpl = cls.from_file(self.path_for(attr_name, "%s.cfg" % name))
+            tpl = cls.from_file(self, self.path_for(attr_name, "%s.cfg" % name))
             self.register(tpl, warn=False)
             return tpl
 
@@ -79,7 +84,7 @@ class Registry(object):
             path =  os.path.join(self.PREFIX, self.PATHS[kind])
             for cur_dir, subdirs, files in os.walk(path):
                 for f in files:
-                    cls.from_file(os.path.join(cur_dir, f))
+                    cls.from_file(self, os.path.join(cur_dir, f))
 
     def validate_all(self):
         for attr, cls in self.TYPES:
@@ -165,7 +170,7 @@ class Registry(object):
 
         for s, members in self._sg.iteritems():
             m = ','.join(["%s,%s" % (ss.host_name, ss.service_description) for ss in members])
-            servicegroup.ServiceGroup(servicegroup_name=s, members=m)
+            ServiceGroup(servicegroup_name=s, members=m, registry=self)
 
     def generate_clusters(self):
         """A cluster is basically a check of a service group. However, a cluster check only checks
@@ -186,22 +191,27 @@ class Registry(object):
                     self.generate_cluster(sg, cluster.kwargs, services)
 
     def generate_cluster(self, cluster_name, cluster_config, services):
-        ch = host.Host(use='cluster',
-                       host_name="vip-%s" % cluster_name,
-                       registry_prefix='cluster',
-                       qualified=True,
-                       address='127.0.0.1')
+        ch = Host(use='cluster',
+                  host_name="vip-%s" % cluster_name,
+                  registry_prefix='cluster',
+                  registry=self,
+                  qualified=True,
+                  address='127.0.0.1')
 
         cluster_config['host'] = ch
-        cluster = servicecluster.ServiceCluster(services[0], cluster_name, **cluster_config)
+        cluster = ServiceCluster(services[0],
+                                 cluster_name,
+                                 registry=self,
+                                 **cluster_config)
 
         chk = ["$SERVICESTATEID:%s:%s$" % (s.host_name, s.service_description) for s in services]
         chk_str = ','.join(chk)
 
-        command.Command(command_name=cluster.check_command,
-                        command_line="$USER1$/check_cluster -l '%(service)s' -d %(chk_str)s -w @%(warn)d: -c @%(crit)d:" % {
+        Command(command_name=cluster.check_command,
+                command_line="$USER1$/check_cluster -l '%(service)s' -d %(chk_str)s -w @%(warn)d: -c @%(crit)d:" % {
                     'service': cluster.service_description,
                     'chk_str': chk_str,
                     'warn': max(int(int(cluster.warn_threshold)/100.0*len(chk)), 1),
                     'crit': max(int(int(cluster.crit_threshold)/100.0*len(chk)), 2),
-                })
+                },
+                registry=self,)

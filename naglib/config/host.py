@@ -1,9 +1,10 @@
 #!/usr/bin/env python
-import config
+
+from naglib.config.base import *
 
 """ A representation of a nagios host"""
 
-class Host(config.BaseObject):
+class Host(BaseObject):
     TYPE = 'host'
     TEMPLATE_CLASS = 'host.HostTemplate'
     PARAMS = (
@@ -62,7 +63,7 @@ class Host(config.BaseObject):
         'notification_period',
     )
 
-    def __init__(self, host_name, network_site = None, **kwargs):
+    def __init__(self, host_name, network_site = None, registry=None, **kwargs):
         self.props = dict()
         self.network_site = network_site
 
@@ -84,14 +85,14 @@ class Host(config.BaseObject):
 
             self._registry_prefix = self._datacenter
 
-        super(Host, self).__init__(**kwargs)
+        super(Host, self).__init__(registry=registry, **kwargs)
 
 
     @property
     def identity(self):
         return self.host_name
 
-class HostTemplate(config.BaseTemplate):
+class HostTemplate(BaseTemplate):
     PARAMS = Host.PARAMS + ('name','register')
     TYPE = 'host'
     TEMPLATE_CLASS = 'host.HostTemplate'

@@ -1,15 +1,10 @@
 #!/usr/bin/env python
 
-import naglib.registry as registry
-from naglib.host import Host
-from naglib.service import Service
-from naglib.servicegroup import ServiceGroup
-from naglib.command import Command
-
-from collections import defaultdict
+from naglib.config import *
+from naglib.config.registry import Registry
 
 print "creating the registry"
-r = registry.Registry()
+r = Registry()
 print "resolving"
 r.resolve_all()
 
@@ -17,15 +12,16 @@ print "adding some hosts"
 for dc in ('datacenter1', 'datacenter2'):
     for i in xrange(2):
         h = Host(host_name="host%.2d" % i,
+                 registry=r,
                 alias="host%.2d" % i,
                 address="127.0.0.%d" % i,
                 use=dc,)
 
 print "adding a service"
 for h in r.hosts.values():
-    s = Service(host=h, use='test-service',)
+    s = Service(host=h, use='test-service', registry=r,)
     if h.use == 'datacenter1':
-        s = Service(host=h, use='test-service-test',)
+        s = Service(host=h, use='test-service-test', registry=r,)
 
 r.validate_all()
 r.generate_servicegroups()

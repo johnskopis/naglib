@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-import config
+from base import *
 
 """ A representation of a nagios service escalation"""
 
-class ServiceEscalation(config.BaseObject):
+class ServiceEscalation(BaseObject):
     TYPE = 'serviceescalation'
     TEMPLATE_CLASS = None
     PARAMS = (

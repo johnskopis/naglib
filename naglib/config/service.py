@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 #import re
 #import registry
-import utils
-import config
 import json
-import servicedependency, serviceescalation, servicecluster
+from naglib.config.base import BaseObject, BaseTemplate
+from naglib.config.servicedependency import ServiceDependency
+from naglib.config.serviceescalation  import ServiceEscalation
 
 """ A representation of a nagios service"""
 
-class Service(config.BaseObject):
+class Service(BaseObject):
     TYPE = 'service'
     TEMPLATE_CLASS  = 'service.ServiceTemplate'
     PARAMS = (
@@ -67,7 +67,7 @@ class Service(config.BaseObject):
     )
 
 
-    def __init__(self, host = None, **kwargs):
+    def __init__(self, host = None, registry = None, **kwargs):
         if not self.__dict__.get('props', None):
             self.props = dict()
         self.host = host
@@ -77,7 +77,7 @@ class Service(config.BaseObject):
 
         self._registry_prefix = None
 
-        super(Service, self).__init__(**kwargs)
+        super(Service, self).__init__(registry=registry, **kwargs)
 
         if self._depends_on:
             if not isinstance(self._depends_on, list):
@@ -92,7 +92,7 @@ class Service(config.BaseObject):
                         sd["host_name"] = self.host_name
                     sd['dependent_host_name'] = self.host_name
                     sd['dependent_service_description'] = self.service_description
-                    servicedependency.ServiceDependency(**sd)
+                    ServiceDependency(registry=registry, **sd)
 
         if self._escalates_to:
             if not isinstance(self._escalates_to, list):
@@ -107,7 +107,7 @@ class Service(config.BaseObject):
                     es['service_description'] = self.service_description
                     if not es.get('notification_interval', None):
                         es['notification_interval'] = self.check_interval
-                    serviceescalation.ServiceEscalation(**es)
+                    ServiceEscalation(registry=registry, **es)
 
         if self._cluster_config and not self.__class__.__name__ == 'ServiceCluster':
             if not isinstance(self._cluster_config, list):
@@ -117,7 +117,7 @@ class Service(config.BaseObject):
 
             for c in clusters:
                 sc = self.load_json(c)
-                servicecluster.LazyServiceCluster(self.service_description, **sc)
+                LazyServiceCluster(self.service_description, registry=registry, **sc)
 
 
     def load_json(self, s):
@@ -153,7 +153,45 @@ class Service(config.BaseObject):
         return "%s/%s" % (self.service_description, self.host.identity)
 
 
-class ServiceTemplate(config.BaseTemplate):
+class ServiceTemplate(BaseTemplate):
     TYPE = 'service'
     PARAMS = Service.PARAMS + ('name','register')
     TEMPLATE_CLASS  = 'service.ServiceTemplate'
+
+
+class ServiceCluster(Service):
+    """ A representation of a nagios service cluster"""
+    def __init__(self, service, cluster_name, **kwargs):
+        self.props = dict()
+        self._registry_prefix = None
+
+        if kwargs.get('props', None):
+            self.props.update(kwargs['props'])
+            del kwargs['props']
+
+        self.warn_threshold = kwargs.get('warn', 10)
+        self.crit_threshold = kwargs.get('crit', 20)
+        self.cluster = "cluster_%s" % cluster_name
+
+
+        self.props['host_name'] = "vip-%s" % self.cluster
+        self.props['service_description'] = self.cluster
+        self.props['check_command'] = "check_%s" % self.cluster
+
+        super(ServiceCluster, self).__init__(**kwargs)
+
+    @property
+    def identity(self):
+        return self.cluster
+
+
+class LazyServiceCluster(object):
+    """ We defer creation of the service cluster until all of the services are defined. """
+    def __init__(self, service, registry=None, **kwargs):
+        self.clustergroup = service
+        self.kwargs = kwargs
+        registry.register(self, warn=False)
+
+    @property
+    def identity(self):
+        return self.clustergroup

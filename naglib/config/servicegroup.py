@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-import config
+from base import *
 
 """ A representation of a nagios host"""
 
-class ServiceGroup(config.BaseObject):
+class ServiceGroup(BaseObject):
     TYPE = 'servicegroup'
     TEMPLATE_CLASS = None
     PARAMS = (

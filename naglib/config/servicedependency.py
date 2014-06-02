@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-import config
+from base import *
 
 """ A representation of a nagios service dependency"""
 
-class ServiceDependency(config.BaseObject):
+class ServiceDependency(BaseObject):
     TYPE = 'servicedependency'
     TEMPLATE_CLASS = None
     PARAMS = (

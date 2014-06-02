@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-import config
+from base import *
 
 """ A representation of a nagios service dependency"""
 
-class Command(config.BaseObject):
+class Command(BaseObject):
     TYPE = 'command'
     TEMPLATE_CLASS = None
     PARAMS = (

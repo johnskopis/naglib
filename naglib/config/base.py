@@ -1,25 +1,24 @@
 #!/usr/bin/env python
-import registry
 import sys
-import utils
+import naglib.utils as utils
 
-""" The base class for all of the nagios configuration objects """
 
 class ConfigurationException(Exception):
     pass
 
 class BaseObject(object):
+    """ The base class for all of the nagios configuration objects """
     TYPE = 'base'
     PARAMS = ()
     REQUIRED_PARAMS = ()
     TEMPLATE_CLASS = None
 
     @classmethod
-    def from_file(cls, path):
+    def from_file(cls, registry, path):
         cfg = utils.read_template_file(path)
-        return cls(**cfg)
+        return cls(registry=registry, **cfg)
 
-    def __init__(self, template = None, **kwargs):
+    def __init__(self, registry, template = None, **kwargs):
         if not self.__dict__.get('props', None):
             self.props = dict()
         self.template = template
@@ -28,9 +27,9 @@ class BaseObject(object):
         if use:
             # TODO(JS): fix
             module_name, class_name = self.TEMPLATE_CLASS.split('.')
-            module_name = "naglib.%s" % module_name
+            module_name = "naglib.config.%s" % module_name
             cls = getattr(sys.modules[module_name], class_name)
-            self.template = registry.Registry().resolve_template(cls, use)
+            self.template = registry.resolve_template(cls, use)
 
         for k, v in kwargs.iteritems():
             if k in self.PARAMS or k.startswith('_'):
@@ -41,7 +40,7 @@ class BaseObject(object):
             if not self.props.get(key, None):
                 self.props[key] = v
 
-        registry.Registry().register(self)
+        registry.register(self)
 
     def validate_params(self):
         print "validating %s(%s)" % (self.TYPE, self.identity)
