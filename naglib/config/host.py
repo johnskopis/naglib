@@ -67,26 +67,37 @@ class Host(BaseObject):
         self.props = dict()
         self.network_site = network_site
 
-        if self.network_site:
-            self.props['_datacenter'] = self.network_site
-        else:
-            self.props['_datacenter'] = kwargs.get('use', 'default')
-
-
-        if kwargs.get('qualified', False):
-            del kwargs['qualified']
-            self.props['host_name'] = host_name
-            self.props['alias'] = host_name
-        else:
-            host = host_name.split('.')[0]
-
-            self.props['host_name'] = "%s.%s" % (host, self._datacenter)
-            self.props['alias'] = self.props['host_name']
-
-            self._registry_prefix = self._datacenter
+        self.props.update(self.get_hostname(host_name, network_site, **kwargs))
+        self._registry_prefix = self._datacenter
 
         super(Host, self).__init__(registry=registry, **kwargs)
 
+    @staticmethod
+    def get_hostname(host_name = None, network_site = None, **kwargs):
+        if network_site:
+            _datacenter = network_site
+        else:
+            _datacenter = kwargs.get('use', 'generic-host')
+
+        if kwargs.get('qualified', False):
+            host_name = host_name
+        else:
+            host = host_name.split('.')[0]
+            host_name = "%s.%s" % (host, _datacenter)
+
+        if kwargs.get('alias', None):
+            alias = kwargs['alias']
+        else:
+            alias = host_name
+
+        return dict(host_name=host_name,
+                    alias=alias,
+                    _datacenter=_datacenter)
+
+    @staticmethod
+    def identity_for(**kwargs):
+        host_config = Host.get_hostname(**kwargs)
+        return host_config['host_name']
 
     @property
     def identity(self):
