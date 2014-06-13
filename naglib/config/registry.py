@@ -203,7 +203,9 @@ class Registry(object):
 
         for cluster_identity, cluster in self.lazy_service_clusters.iteritems():
             for sg, services in sc.iteritems():
-                if sg.startswith(cluster_identity):
+                # TODO(JS): We attempt to register the cluster more than once
+                # we should figure out why and get rid of the and not
+                if sg.startswith(cluster_identity) and not self.service_clusters.get(cluster_identity):
                     self.generate_cluster(sg, cluster.kwargs, services)
 
     def generate_cluster(self, cluster_name, cluster_config, services):

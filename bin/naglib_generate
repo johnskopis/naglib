@@ -21,7 +21,7 @@ class Program(object):
         if self.config['output']:
             self.config['output'] = self.config['output'] % format_dict
 
-        r = Registry(config=self.config['prefix'],
+        r = Registry(prefix=self.config['prefix'],
                      output=self.config['output'])
 
         parts = self.config['engine'].split('.')

@@ -39,11 +39,9 @@ class ReClassifer(object):
                     for check in rule['checks']:
                         kwargs = self._host_args(host)
 
-                        host = self.registry.hosts[Host.identity_for(**kwargs)]
-
                         Service(registry=self.registry,
                                 use=check,
-                                host=host)
+                                host=self.registry.hosts[Host.identity_for(**kwargs)])
 
     def _host_args(self, host):
         kwargs=dict()
