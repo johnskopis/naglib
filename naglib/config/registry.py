@@ -1,4 +1,5 @@
 import os
+import re
 #import host, servicegroup, command, servicedependency, serviceescalation, servicecluster, service
 from naglib.config.host import Host, HostTemplate
 from naglib.config.service import *
@@ -80,10 +81,19 @@ class Registry(object):
 
         if registry.get(name, None):
             return registry.get(name, None)
-        else:
-            tpl = cls.from_file(self, self.path_for(attr_name, "%s.cfg" % name))
-            self.register(tpl, warn=False)
-            return tpl
+
+        names = re.split(r",\s*", name)
+        tpl = cls.from_file(self, self.path_for(attr_name, "%s.cfg" % names[0]))
+
+        oname = name
+        if len(names) > 1:
+            for name in names[1:]:
+                # TODO(JS): This wrong, this should be a reverse merge. Possibly a deep merge of mv
+                # custom fields, _depends_on, _escalates_to, etc
+                tpl.props.update(cls.from_file(self, self.path_for(attr_name, "%s.cfg" % name)).props)
+
+        self.register(tpl, warn=False)
+        return tpl
 
     def resolve_all(self):
         for kind, cls in self.TYPES:
