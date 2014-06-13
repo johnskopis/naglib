@@ -135,7 +135,7 @@ class Service(BaseObject):
             print "ERROR occured parsing %s for %s" % (s, self.service_description)
 
         for k, v in j.iteritems():
-            jj[k] = str(v) % params
+            jj[k] = str(v) % self
 
         return jj
 

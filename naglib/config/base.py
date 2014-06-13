@@ -62,6 +62,12 @@ class BaseObject(object):
             if tpl_attr:
                 return tpl_attr
 
+    def __getitem__(self, k):
+        return getattr(self, k)
+
+    def __repr__(self):
+        return self.identity
+
 
     def render(self):
         out = "define %s { \n" % self.TYPE
