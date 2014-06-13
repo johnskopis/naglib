@@ -68,6 +68,15 @@ class BaseObject(object):
     def __repr__(self):
         return self.identity
 
+    # TODO(JS): generator
+    def templates(self):
+       cur = self
+       tpls = []
+       while cur.template != None:
+           tpls.append(cur.template)
+           cur = cur.template
+
+       return tpls
 
     def render(self):
         out = "define %s { \n" % self.TYPE

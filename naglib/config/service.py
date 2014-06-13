@@ -79,35 +79,39 @@ class Service(BaseObject):
 
         super(Service, self).__init__(registry=registry, **kwargs)
 
-        if self._depends_on:
-            if not isinstance(self._depends_on, list):
-                deps = [self._depends_on]
-            else:
-                deps = self._depends_on
+        deps = []
+        escalations = []
+        for t in self.templates():
+            if t._depends_on:
+                if isinstance(t._depends_on, list):
+                    deps.extend(t._depends_on)
+                else:
+                    deps.append(t._depends_on)
+            if t._escalates_to:
+                if isinstance(t._escalates_to, list):
+                    escalations.extend(t._escalates_to)
+                else:
+                    escalations.append(t._escalates_to)
 
-            for dep in deps:
-                sd = self.load_json(dep)
-                if sd:
-                    if sd['host_name'] == "":
-                        sd["host_name"] = self.host_name
-                    sd['dependent_host_name'] = self.host_name
-                    sd['dependent_service_description'] = self.service_description
-                    ServiceDependency(registry=registry, **sd)
+        for dep in set(deps):
+            sd = self.load_json(dep)
+            if sd:
+                if sd['host_name'] == "":
+                    sd["host_name"] = self.host_name
+                sd['dependent_host_name'] = self.host_name
+                sd['dependent_service_description'] = self.service_description
+                sd['execution_failure_criteria'] = 'n'
+                sd['notification_failure_criteria'] = 'w,u,c'
+                ServiceDependency(registry=registry, **sd)
 
-        if self._escalates_to:
-            if not isinstance(self._escalates_to, list):
-                escalations = [self._escalates_to]
-            else:
-                escalations = self._escalates_to
-
-            for e in escalations:
-                es = self.load_json(e)
-                if es:
-                    es['host_name'] = self.host_name
-                    es['service_description'] = self.service_description
-                    if not es.get('notification_interval', None):
-                        es['notification_interval'] = self.check_interval
-                    ServiceEscalation(registry=registry, **es)
+        for e in set(escalations):
+           es = self.load_json(e)
+           if es:
+               es['host_name'] = self.host_name
+               es['service_description'] = self.service_description
+               if not es.get('notification_interval', None):
+                   es['notification_interval'] = self.check_interval
+               ServiceEscalation(registry=registry, **es)
 
         if self._cluster_config and not self.__class__.__name__ == 'ServiceCluster':
             if not isinstance(self._cluster_config, list):
