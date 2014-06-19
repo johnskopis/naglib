@@ -35,13 +35,14 @@ class ReClassifer(object):
             field = rule['field']
             cre = re.compile(rule['re'])
             for host in self.hosts:
-                if cre.search(host[field]):
-                    for check in rule['checks']:
-                        kwargs = self._host_args(host)
+                for token in re.split(r',\s*', host[field]):
+                    if cre.search(token):
+                        for check in rule['checks']:
+                            kwargs = self._host_args(host)
 
-                        Service(registry=self.registry,
-                                use=check,
-                                host=self.registry.hosts[Host.identity_for(**kwargs)])
+                            Service(registry=self.registry,
+                                    use=check,
+                                    host=self.registry.hosts[Host.identity_for(**kwargs)])
 
     def _host_args(self, host):
         kwargs=dict()
