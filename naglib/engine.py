@@ -19,9 +19,7 @@ class ReClassifer(object):
 
     def load_csv(self, csv_file):
         with open(csv_file, 'r') as fd:
-            dialect = csv.Sniffer().sniff(fd.read(1024))
-            fd.seek(0)
-            csvr = csv.reader(fd, dialect)
+            csvr = csv.reader(fd)
             self.hosts = list(csvr)
 
     def configure_hosts(self):
